@@ -1,3 +1,11 @@
+/**
+ * \file requests.cpp
+ * \mainpage
+ *    Contains implementations of new request classes
+ * \author
+ *    Implementation based on plan
+*/
+
 #include "myactuator_rmd/protocol/requests.hpp"
 
 #include <chrono>
@@ -122,4 +130,78 @@ namespace myactuator_rmd {
     return static_cast<float>(getAs<std::int32_t>(4))/100.0f;
   }
 
+  // Implementation of ActiveReplyFunctionRequest
+  ActiveReplyFunctionRequest::ActiveReplyFunctionRequest(bool const enable, std::uint8_t const frequency)
+    : SingleMotorRequest{} {
+    data_[1] = enable ? 0x01 : 0x00;
+    data_[2] = frequency;
+    // Other data fields remain 0
+  }
+
+  bool ActiveReplyFunctionRequest::isEnabled() const noexcept {
+    return (data_[1] == 0x01);
+  }
+
+  std::uint8_t ActiveReplyFunctionRequest::getFrequency() const noexcept {
+    return data_[2];
+  }
+  
+  // Implementation of SingleTurnPositionControlRequest
+  SingleTurnPositionControlRequest::SingleTurnPositionControlRequest(float const position,
+                                                                   std::uint8_t const direction, 
+                                                                   float const max_speed)
+    : SingleMotorRequest{} {
+    data_[1] = direction;
+    
+    std::uint16_t const speed_int{static_cast<std::uint16_t>(max_speed)};
+    data_[2] = static_cast<std::uint8_t>(speed_int & 0xFF);
+    data_[3] = static_cast<std::uint8_t>((speed_int >> 8) & 0xFF);
+    
+    std::uint16_t const position_int{static_cast<std::uint16_t>(position * 100.0f)};
+    data_[4] = static_cast<std::uint8_t>(position_int & 0xFF);
+    data_[5] = static_cast<std::uint8_t>((position_int >> 8) & 0xFF);
+    
+    // data_[6] and data_[7] remain 0
+  }
+
+  float SingleTurnPositionControlRequest::getPosition() const noexcept {
+    std::uint16_t const position_int{static_cast<std::uint16_t>((data_[5] << 8) | data_[4])};
+    return static_cast<float>(position_int) * 0.01f;
+  }
+
+  std::uint8_t SingleTurnPositionControlRequest::getDirection() const noexcept {
+    return data_[1];
+  }
+
+  float SingleTurnPositionControlRequest::getMaxSpeed() const noexcept {
+    std::uint16_t const speed_int{static_cast<std::uint16_t>((data_[3] << 8) | data_[2])};
+    return static_cast<float>(speed_int);
+  }
+
+  // Implementation of IncrementalPositionControlRequest
+  IncrementalPositionControlRequest::IncrementalPositionControlRequest(float const position_increment,
+                                                                     float const max_speed)
+    : SingleMotorRequest{} {
+    std::uint16_t const speed_int{static_cast<std::uint16_t>(max_speed)};
+    data_[2] = static_cast<std::uint8_t>(speed_int & 0xFF);
+    data_[3] = static_cast<std::uint8_t>((speed_int >> 8) & 0xFF);
+    
+    std::int32_t const position_int{static_cast<std::int32_t>(position_increment * 100.0f)};
+    data_[4] = static_cast<std::uint8_t>(position_int & 0xFF);
+    data_[5] = static_cast<std::uint8_t>((position_int >> 8) & 0xFF);
+    data_[6] = static_cast<std::uint8_t>((position_int >> 16) & 0xFF);
+    data_[7] = static_cast<std::uint8_t>((position_int >> 24) & 0xFF);
+  }
+
+  float IncrementalPositionControlRequest::getPositionIncrement() const noexcept {
+    std::int32_t const position_int{static_cast<std::int32_t>(
+      (data_[7] << 24) | (data_[6] << 16) | (data_[5] << 8) | data_[4]
+    )};
+    return static_cast<float>(position_int) * 0.01f;
+  }
+
+  float IncrementalPositionControlRequest::getMaxSpeed() const noexcept {
+    std::uint16_t const speed_int{static_cast<std::uint16_t>((data_[3] << 8) | data_[2])};
+    return static_cast<float>(speed_int);
+  }
 }

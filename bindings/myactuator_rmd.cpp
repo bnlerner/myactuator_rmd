@@ -12,6 +12,7 @@
 #include <tuple>
 
 #include <pybind11/chrono.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -32,6 +33,7 @@
 #include "myactuator_rmd/actuator_constants.hpp"
 #include "myactuator_rmd/actuator_interface.hpp"
 #include "myactuator_rmd/exceptions.hpp"
+#include "myactuator_rmd/feedback_listener.hpp"
 #include "myactuator_rmd/io.hpp"
 
 
@@ -105,10 +107,25 @@ PYBIND11_MODULE(myactuator_rmd_py, m) {
     .def("setEncoderZero", &myactuator_rmd::ActuatorInterface::setEncoderZero)
     .def("setTimeout", &myactuator_rmd::ActuatorInterface::setTimeout)
     .def("shutdownMotor", &myactuator_rmd::ActuatorInterface::shutdownMotor)
-    .def("stopMotor", &myactuator_rmd::ActuatorInterface::stopMotor);
+    .def("stopMotor", &myactuator_rmd::ActuatorInterface::stopMotor)
+    .def("sendSingleTurnPositionSetpoint", &myactuator_rmd::ActuatorInterface::sendSingleTurnPositionSetpoint,
+         pybind11::arg("position"), pybind11::arg("direction") = 0, pybind11::arg("max_speed") = 500.0f)
+    .def("sendIncrementalPositionSetpoint", &myactuator_rmd::ActuatorInterface::sendIncrementalPositionSetpoint,
+         pybind11::arg("position_increment"), pybind11::arg("max_speed") = 500.0f)
+    .def("configureActiveReply", &myactuator_rmd::ActuatorInterface::configureActiveReply,
+         pybind11::arg("enable"), pybind11::arg("frequency") = 10)
+    .def("registerFeedbackListener", &myactuator_rmd::ActuatorInterface::registerFeedbackListener);
   pybind11::register_exception<myactuator_rmd::Exception>(m, "ActuatorException");
   pybind11::register_exception<myactuator_rmd::ProtocolException>(m, "ProtocolException");
   pybind11::register_exception<myactuator_rmd::ValueRangeException>(m, "ValueRangeException");
+
+  // Add FeedbackListener class
+  pybind11::class_<myactuator_rmd::FeedbackListener>(m, "FeedbackListener")
+    .def(pybind11::init<myactuator_rmd::Driver&, std::uint32_t>(), pybind11::keep_alive<1, 2>())
+    .def("registerFeedbackCallback", &myactuator_rmd::FeedbackListener::registerFeedbackCallback)
+    .def("registerStatusCallback", &myactuator_rmd::FeedbackListener::registerStatusCallback)
+    .def("start", &myactuator_rmd::FeedbackListener::start)
+    .def("stop", &myactuator_rmd::FeedbackListener::stop);
 
   auto m_actuator_state = m.def_submodule("actuator_state", "Submodule for actuator state structures");
   pybind11::enum_<myactuator_rmd::AccelerationType>(m_actuator_state, "AccelerationType")

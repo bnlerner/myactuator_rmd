@@ -15,6 +15,7 @@
 #include "myactuator_rmd/actuator_constants.hpp"
 #include "myactuator_rmd/actuator_interface.hpp"
 #include "myactuator_rmd/exceptions.hpp"
+#include "myactuator_rmd/feedback_listener.hpp"
 #include "myactuator_rmd/io.hpp"
 #include "myactuator_rmd/version.hpp"
 

@@ -33,6 +33,7 @@ add_library(myactuator_rmd SHARED
   src/protocol/requests.cpp
   src/protocol/responses.cpp
   src/actuator_interface.cpp
+  src/feedback_listener.cpp
 )
 target_compile_features(myactuator_rmd PUBLIC
   cxx_std_17
@@ -134,6 +135,17 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     )
     target_link_libraries(can_node PUBLIC
       Boost::program_options
+      myactuator_rmd
+    )
+
+    # Add active_reply_example
+    add_executable(active_reply_example
+      examples/active_reply_example.cpp
+    )
+    target_compile_features(active_reply_example PUBLIC
+      cxx_std_17
+    )
+    target_link_libraries(active_reply_example PUBLIC
       myactuator_rmd
     )
   endif()

@@ -12,6 +12,7 @@
 #include "myactuator_rmd/actuator_state/motor_status_2.hpp"
 #include "myactuator_rmd/actuator_state/motor_status_3.hpp"
 #include "myactuator_rmd/driver/driver.hpp"
+#include "myactuator_rmd/feedback_listener.hpp"
 #include "myactuator_rmd/protocol/requests.hpp"
 #include "myactuator_rmd/protocol/responses.hpp"
 #include "myactuator_rmd/exceptions.hpp"
@@ -23,6 +24,10 @@ namespace myactuator_rmd {
   : driver_{driver}, actuator_id_{actuator_id} {
     driver.addId(actuator_id); // Make the actuator listen to the responses
     return;
+  }
+
+  void ActuatorInterface::registerFeedbackListener(FeedbackListener* listener) {
+    feedback_listener_ = listener;
   }
 
   std::int32_t ActuatorInterface::getAcceleration() {
@@ -163,6 +168,9 @@ namespace myactuator_rmd {
   }
 
   Feedback ActuatorInterface::sendVelocitySetpoint(float const speed) {
+    if ((speed < -32767.0f) || (speed > +32767.0f)) {
+      throw ValueRangeException("Speed is not in the valid range!");
+    }
     SetVelocityRequest const request {speed};
     SetVelocityResponse const response {driver_.sendRecv(request, actuator_id_)};
     return response.getStatus();
@@ -226,6 +234,59 @@ namespace myactuator_rmd {
     StopMotorRequest const request {};
     [[maybe_unused]] StopMotorResponse const response {driver_.sendRecv(request, actuator_id_)};
     return;
+  }
+
+  Feedback ActuatorInterface::sendSingleTurnPositionSetpoint(float const position, std::uint8_t const direction, float const max_speed) {
+    if (position < 0.0f || position >= 360.0f) {
+      throw ValueRangeException("Position is out of range [0°, 359.99°]!");
+    }
+    
+    if (direction != 0 && direction != 1) {
+      throw ValueRangeException("Direction must be 0 (clockwise) or 1 (counter-clockwise)!");
+    }
+    
+    if (max_speed < 0.0f) {
+      throw ValueRangeException("Maximum speed must be positive!");
+    }
+    
+    SingleTurnPositionControlRequest const request{position, direction, max_speed};
+    SingleTurnPositionControlResponse const response {driver_.sendRecv(request, actuator_id_)};
+    return response.getStatus();
+  }
+
+  Feedback ActuatorInterface::sendIncrementalPositionSetpoint(float const position_increment, float const max_speed) {
+    if (max_speed < 0.0f) {
+      throw ValueRangeException("Maximum speed must be positive!");
+    }
+    
+    IncrementalPositionControlRequest const request{position_increment, max_speed};
+    IncrementalPositionControlResponse const response {driver_.sendRecv(request, actuator_id_)};
+    return response.getStatus();
+  }
+  
+  void ActuatorInterface::configureActiveReply(bool const enable, std::uint8_t const frequency) {
+    if (enable && (frequency == 0 || frequency > 100)) {
+      throw ValueRangeException("Frequency must be between 1 and 100 Hz when active reply is enabled!");
+    }
+    
+    ActiveReplyFunctionRequest const request{enable, frequency};
+    
+    // Use the regular sendRecv method
+    [[maybe_unused]] ActiveReplyFunctionResponse const response {driver_.sendRecv(request, actuator_id_)};
+    
+    // Notify the feedback listener if one is registered
+    if (feedback_listener_ != nullptr) {
+      feedback_listener_->setActiveReplyEnabled(enable);
+    }
+    return;
+  }
+
+  // Modified method for Actuator Interface to pass frames to feedback listener
+  // This uses friend access to the driver to intercept frames
+  void ActuatorInterface::passFrameToFeedbackListener(const can::Frame& frame) {
+    if (feedback_listener_ != nullptr) {
+      feedback_listener_->processFrame(frame);
+    }
   }
 
 }

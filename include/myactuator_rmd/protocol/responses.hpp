@@ -123,12 +123,27 @@ namespace myactuator_rmd {
       */
       [[nodiscard]]
       std::int32_t getPosition() const noexcept;
+
+      /**\fn getEncoderZero
+       * \brief
+       *    Get the current encoder position (alias of getPosition)
+       * 
+       * \return
+       *    The current encoder position
+      */
+      [[nodiscard]]
+      std::int32_t getEncoderZero() const noexcept;
   };
 
   template <CommandType C>
   std::int32_t MultiTurnEncoderPositionResponse<C>::getPosition() const noexcept {
     auto const encoder_position {this->template getAs<std::int32_t>(4)};
     return encoder_position;
+  }
+
+  template <CommandType C>
+  std::int32_t MultiTurnEncoderPositionResponse<C>::getEncoderZero() const noexcept {
+    return getPosition();
   }
 
   using GetMultiTurnEncoderPositionResponse = MultiTurnEncoderPositionResponse<CommandType::READ_MULTI_TURN_ENCODER_POSITION>;
@@ -479,18 +494,93 @@ namespace myactuator_rmd {
       SetCurrentPositionAsEncoderZeroResponse& operator = (SetCurrentPositionAsEncoderZeroResponse&&) = default;
       using SingleMotorResponse::SingleMotorResponse;
 
-      /**\fn getEncoderZero
+      /**\fn getPosition
        * \brief
-       *    Get the encoder zero value
+       *    Get the current encoder position
        * 
        * \return
-       *    The encoder zero value
+       *    The current encoder position
+      */
+      [[nodiscard]]
+      std::int32_t getPosition() const noexcept;
+
+      /**\fn getEncoderZero
+       * \brief
+       *    Get the current encoder position (alias of getPosition)
+       * 
+       * \return
+       *    The current encoder position
       */
       [[nodiscard]]
       std::int32_t getEncoderZero() const noexcept;
   };
 
-  using SetEncoderZeroResponse = SingleMotorRequest<CommandType::WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_ZERO>;
+  /**\class ActiveReplyFunctionResponse
+   * \brief
+   *    Response to request for configuring the active reply function
+  */
+  class ActiveReplyFunctionResponse: public SingleMotorResponse<CommandType::ACTIVE_REPLY_FUNCTION> {
+    public:
+      ActiveReplyFunctionResponse() = delete;
+      ActiveReplyFunctionResponse(ActiveReplyFunctionResponse const&) = default;
+      ActiveReplyFunctionResponse& operator = (ActiveReplyFunctionResponse const&) = default;
+      ActiveReplyFunctionResponse(ActiveReplyFunctionResponse&&) = default;
+      ActiveReplyFunctionResponse& operator = (ActiveReplyFunctionResponse&&) = default;
+      using SingleMotorResponse::SingleMotorResponse;
+
+      /**\fn isEnabled
+       * \brief
+       *    Check if active reply is enabled
+       * 
+       * \return
+       *    True if active reply is enabled, false otherwise
+      */
+      [[nodiscard]]
+      bool isEnabled() const noexcept;
+
+      /**\fn getFrequency
+       * \brief
+       *    Get the frequency of active replies
+       * 
+       * \return
+       *    The frequency in Hz [1, 100]
+      */
+      [[nodiscard]]
+      std::uint8_t getFrequency() const noexcept;
+  };
+
+  /**\class SingleTurnPositionControlResponse
+   * \brief
+   *    Response to request for single-turn position control
+  */
+  class SingleTurnPositionControlResponse: public FeedbackResponse<CommandType::SINGLE_TURN_POSITION_CONTROL> {
+    public:
+      SingleTurnPositionControlResponse() = delete;
+      SingleTurnPositionControlResponse(SingleTurnPositionControlResponse const&) = default;
+      SingleTurnPositionControlResponse& operator = (SingleTurnPositionControlResponse const&) = default;
+      SingleTurnPositionControlResponse(SingleTurnPositionControlResponse&&) = default;
+      SingleTurnPositionControlResponse& operator = (SingleTurnPositionControlResponse&&) = default;
+      using FeedbackResponse::FeedbackResponse;
+  };
+
+  /**\class IncrementalPositionControlResponse
+   * \brief
+   *    Response to request for incremental position control
+  */
+  class IncrementalPositionControlResponse: public FeedbackResponse<CommandType::INCREMENTAL_POSITION_CLOSED_LOOP_CONTROL> {
+    public:
+      IncrementalPositionControlResponse() = delete;
+      IncrementalPositionControlResponse(IncrementalPositionControlResponse const&) = default;
+      IncrementalPositionControlResponse& operator = (IncrementalPositionControlResponse const&) = default;
+      IncrementalPositionControlResponse(IncrementalPositionControlResponse&&) = default;
+      IncrementalPositionControlResponse& operator = (IncrementalPositionControlResponse&&) = default;
+      using FeedbackResponse::FeedbackResponse;
+  };
+
+  template <CommandType C>
+  using SimpleResponse = SingleMotorResponse<C>;
+
+  using SetEncoderZeroResponse = SingleMotorResponse<CommandType::WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_ZERO>;
   using SetTimeoutResponse = SingleMotorResponse<CommandType::COMMUNICATION_INTERRUPTION_PROTECTION_TIME_SETTING>;
   using ShutdownMotorResponse = SingleMotorResponse<CommandType::SHUTDOWN_MOTOR>;
   using StopMotorResponse = SingleMotorResponse<CommandType::STOP_MOTOR>;

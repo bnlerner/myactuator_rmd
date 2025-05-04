@@ -83,8 +83,20 @@ namespace myactuator_rmd {
     return getAs<std::uint32_t>(4);
   }
 
-  std::int32_t SetCurrentPositionAsEncoderZeroResponse::getEncoderZero() const noexcept {
+  std::int32_t SetCurrentPositionAsEncoderZeroResponse::getPosition() const noexcept {
     return getAs<std::int32_t>(4);
+  }
+
+  std::int32_t SetCurrentPositionAsEncoderZeroResponse::getEncoderZero() const noexcept {
+    return getPosition();
+  }
+
+  bool ActiveReplyFunctionResponse::isEnabled() const noexcept {
+    return (data_[1] == 0x01);
+  }
+
+  std::uint8_t ActiveReplyFunctionResponse::getFrequency() const noexcept {
+    return data_[2];
   }
 
 }

@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "myactuator_rmd/actuator_state/acceleration_type.hpp"
@@ -22,10 +23,16 @@
 #include "myactuator_rmd/actuator_state/motor_status_1.hpp"
 #include "myactuator_rmd/actuator_state/motor_status_2.hpp"
 #include "myactuator_rmd/actuator_state/motor_status_3.hpp"
-#include "myactuator_rmd/driver/driver.hpp"
-
 
 namespace myactuator_rmd {
+
+  class Driver;
+  class FeedbackListener;
+  class CanDriver;
+
+  namespace can {
+    class Frame;
+  }
 
   /**\class ActuatorInterface
    * \brief
@@ -49,12 +56,30 @@ namespace myactuator_rmd {
       ActuatorInterface(ActuatorInterface&&) = default;
       ActuatorInterface& operator = (ActuatorInterface&&) = default;
 
+      /**\fn registerFeedbackListener
+       * \brief
+       *    Register a feedback listener to receive active reply messages
+       * 
+       * \param[in] listener
+       *    Pointer to a FeedbackListener instance
+      */
+      void registerFeedbackListener(FeedbackListener* listener);
+
+      /**\fn passFrameToFeedbackListener
+       * \brief
+       *    Pass a received CAN frame to the registered feedback listener
+       * 
+       * \param[in] frame
+       *    The CAN frame to be processed
+      */
+      void passFrameToFeedbackListener(const can::Frame& frame);
+
       /**\fn getAcceleration
        * \brief
-       *    Reads the current acceleration
+       *    Read the acceleration of the actuator
        * 
        * \return
-       *    The current acceleration in dps with a resolution of 1 dps
+       *    The acceleration of the actuator in RPM/s
       */
       [[nodiscard]]
       std::int32_t getAcceleration();
@@ -265,16 +290,16 @@ namespace myactuator_rmd {
 
       /**\fn sendTorqueSetpoint
        * \brief
-       *    Send a torque set-point to the actuator by setting the current
+       *    Send a torque set-point to the actuator
        *
        * \param[in] torque
-       *    The desired torque in [Nm]
+       *    The torque set-point in Nm
        * \param[in] torque_constant
-       *    The motor's torque constant [Nm/A], depends on the model of the motor, refer to actuator_constants.hpp
-       *    for the torque constant of your actuator
+       *    The torque constant of the actuator in Nm/A
        * \return
        *    Feedback control message containing actuator position, velocity, torque and temperature
       */
+      [[nodiscard]]
       Feedback sendTorqueSetpoint(float const torque, float const torque_constant);
 
       /**\fn sendVelocitySetpoint
@@ -286,16 +311,56 @@ namespace myactuator_rmd {
        * \return
        *    Feedback control message containing actuator position, velocity, torque and temperature
       */
+      [[nodiscard]]
       Feedback sendVelocitySetpoint(float const speed);
+
+      /**\fn sendSingleTurnPositionSetpoint
+       * \brief
+       *    Send a single-turn position set-point to the actuator
+       *
+       * \param[in] position
+       *    The position set-point in degrees [0°, 359.99°]
+       * \param[in] direction
+       *    The rotation direction (0 for clockwise, 1 for counter-clockwise)
+       * \param[in] max_speed
+       *    The maximum speed during movement in dps
+       * \return
+       *    Feedback control message containing actuator position, velocity, torque and temperature
+      */
+      [[nodiscard]]
+      Feedback sendSingleTurnPositionSetpoint(float const position, std::uint8_t const direction = 0, float const max_speed = 500.0f);
+
+      /**\fn sendIncrementalPositionSetpoint
+       * \brief
+       *    Send an incremental position set-point to the actuator
+       *
+       * \param[in] position_increment
+       *    The position increment in degrees
+       * \param[in] max_speed
+       *    The maximum speed during movement in dps
+       * \return
+       *    Feedback control message containing actuator position, velocity, torque and temperature
+      */
+      [[nodiscard]]
+      Feedback sendIncrementalPositionSetpoint(float const position_increment, float const max_speed = 500.0f);
+
+      /**\fn configureActiveReply
+       * \brief
+       *    Configure active reply function for the actuator
+       *
+       * \param[in] enable
+       *    Whether to enable or disable active reply
+       * \param[in] frequency
+       *    Reply frequency in Hz (only relevant if enabled) [1, 100]
+      */
+      void configureActiveReply(bool const enable, std::uint8_t const frequency = 10);
 
       /**\fn setAcceleration
        * \brief
-       *    Write the acceleration/deceleration for the different modes to RAM and ROM (persistent)
+       *    Sets the maximum acceleration/deceleration of the actuator
        * 
        * \param[in] acceleration
-       *    The desired acceleration/deceleration in dps with a resolution of 1 dps/s [100, 60000]
-       *    For continuous motions the acceleration should be set to the value 0, see 
-       *    https://github.com/2b-t/myactuator_rmd/issues/10#issuecomment-2195847459
+       *    The desired acceleration/deceleration in dps with a resolution of 1 dps [100, 60000]
        * \param[in] mode
        *    The mode of the desired acceleration/deceleration to be set
       */
@@ -379,6 +444,7 @@ namespace myactuator_rmd {
     protected:
       Driver& driver_;
       std::uint32_t actuator_id_;
+      FeedbackListener* feedback_listener_{nullptr};
   };
 
 }

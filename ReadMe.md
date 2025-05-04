@@ -138,8 +138,113 @@ In case you installed the package through ROS 2 the shared library will be locat
 For more information you might also inspect the contents of the module inside Python 3 with `help(myactuator_rmd_py)`.
 
 
+## 4. Using the Active Reply Feature
 
-## 4. Automated tests
+The Active Reply feature allows you to receive asynchronous feedback from the actuator without sending explicit read commands. This is useful for real-time monitoring and control applications.
+
+### C++ Example
+
+```cpp
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <myactuator_rmd/myactuator_rmd.hpp>
+
+// Callback function for feedback data
+void onFeedback(const myactuator_rmd::FeedbackData& feedback) {
+  std::cout << "Position: " << feedback.position << " deg, "
+            << "Velocity: " << feedback.velocity << " dps, "
+            << "Torque: " << feedback.torque << " A\n";
+}
+
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <CAN interface name>\n";
+    return 1;
+  }
+  
+  myactuator_rmd::CanDriver driver{argv[1]};
+  myactuator_rmd::ActuatorInterface actuator{driver, 1};
+  
+  // Create feedback listener
+  myactuator_rmd::FeedbackListener listener{driver, 1};
+  
+  // Register callback
+  listener.registerFeedbackCallback(onFeedback);
+  
+  // Start listener thread
+  listener.start();
+  
+  // Enable active reply at 10Hz
+  actuator.configureActiveReply(true, 10);
+  
+  // Move the motor
+  actuator.sendPositionAbsoluteSetpoint(180.0, 100.0);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+  
+  // Disable active reply
+  actuator.configureActiveReply(false);
+  
+  // Stop listener thread
+  listener.stop();
+  
+  return 0;
+}
+```
+
+### Python Example
+
+```python
+import time
+import sys
+import myactuator_rmd_py as rmd
+
+# Callback function for feedback data
+def on_feedback(feedback):
+    print(f"Position: {feedback.position:.2f} deg, "
+          f"Velocity: {feedback.velocity:.2f} dps, "
+          f"Torque: {feedback.torque:.2f} A")
+
+def main():
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <CAN interface name>")
+        return 1
+
+    # Set up CAN driver
+    driver = rmd.CanDriver(sys.argv[1])
+    
+    # Create actuator interface for motor with ID 1
+    actuator = rmd.ActuatorInterface(driver, 1)
+
+    # Create feedback listener
+    listener = rmd.FeedbackListener(driver, 1)
+
+    # Register callbacks
+    listener.registerFeedbackCallback(on_feedback)
+
+    # Start the listener thread
+    listener.start()
+
+    # Enable active reply at 10Hz
+    actuator.configureActiveReply(True, 10)
+
+    # Move the motor
+    actuator.sendPositionAbsoluteSetpoint(180.0, 100.0)
+    time.sleep(2)
+
+    # Disable active reply
+    actuator.configureActiveReply(False)
+
+    # Stop the listener thread
+    listener.stop()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+## 5. Automated tests
 
 For testing you will have to install the following additional dependencies
 

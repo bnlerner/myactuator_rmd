@@ -380,7 +380,7 @@ namespace myactuator_rmd {
        *    Class constructor
        * 
        * \param[in] speed
-       *    The velocity set-point in degree per second
+       *    Speed of the actuator output shaft in degree per second
       */
       SetVelocityRequest(float const speed);
       SetVelocityRequest() = delete;
@@ -392,13 +392,161 @@ namespace myactuator_rmd {
 
       /**\fn getSpeed
        * \brief
-       *    Get the velocity set-point
+       *    Get the speed set-point sent by this request
        * 
        * \return
-       *    The speed for the motion in degree per second
+       *    The speed in degree per second
       */
       [[nodiscard]]
       float getSpeed() const noexcept;
+  };
+
+  /**\class ActiveReplyFunctionRequest
+   * \brief
+   *    Request for configuring the active reply function of the actuator
+  */
+  class ActiveReplyFunctionRequest: public SingleMotorRequest<CommandType::ACTIVE_REPLY_FUNCTION> {
+    public:
+      /**\fn ActiveReplyFunctionRequest
+       * \brief
+       *    Class constructor
+       * 
+       * \param[in] enable
+       *    Whether to enable (true) or disable (false) active reply
+       * \param[in] frequency
+       *    The frequency in Hz at which the motor should send status data [1, 100]
+       *    Only relevant when enable is true
+      */
+      ActiveReplyFunctionRequest(bool const enable, 
+                              std::uint8_t const frequency = 10);
+      ActiveReplyFunctionRequest() = delete;
+      ActiveReplyFunctionRequest(ActiveReplyFunctionRequest const&) = default;
+      ActiveReplyFunctionRequest& operator = (ActiveReplyFunctionRequest const&) = default;
+      ActiveReplyFunctionRequest(ActiveReplyFunctionRequest&&) = default;
+      ActiveReplyFunctionRequest& operator = (ActiveReplyFunctionRequest&&) = default;
+      using SingleMotorRequest::SingleMotorRequest;
+
+      /**\fn isEnabled
+       * \brief
+       *    Check if active reply is enabled with this request
+       * 
+       * \return
+       *    True if active reply is enabled, false otherwise
+      */
+      [[nodiscard]]
+      bool isEnabled() const noexcept;
+
+      /**\fn getFrequency
+       * \brief
+       *    Get the frequency of active replies
+       * 
+       * \return
+       *    The frequency in Hz [1, 100]
+      */
+      [[nodiscard]]
+      std::uint8_t getFrequency() const noexcept;
+  };
+
+  /**\class SingleTurnPositionControlRequest
+   * \brief
+   *    Request for controlling the actuator in single-turn position mode
+  */
+  class SingleTurnPositionControlRequest: public SingleMotorRequest<CommandType::SINGLE_TURN_POSITION_CONTROL> {
+    public:
+      /**\fn SingleTurnPositionControlRequest
+       * \brief
+       *    Class constructor
+       * 
+       * \param[in] position
+       *    The position setpoint in degrees [0, 359.99]
+       * \param[in] direction
+       *    The rotation direction (0 for clockwise, 1 for counter-clockwise)
+       * \param[in] max_speed
+       *    The maximum speed during movement in dps
+      */
+      SingleTurnPositionControlRequest(float const position,
+                                      std::uint8_t const direction = 0, float const max_speed = 500.0f);
+      SingleTurnPositionControlRequest() = delete;
+      SingleTurnPositionControlRequest(SingleTurnPositionControlRequest const&) = default;
+      SingleTurnPositionControlRequest& operator = (SingleTurnPositionControlRequest const&) = default;
+      SingleTurnPositionControlRequest(SingleTurnPositionControlRequest&&) = default;
+      SingleTurnPositionControlRequest& operator = (SingleTurnPositionControlRequest&&) = default;
+      using SingleMotorRequest::SingleMotorRequest;
+
+      /**\fn getPosition
+       * \brief
+       *    Get the position setpoint
+       * 
+       * \return
+       *    The position in degrees [0, 359.99]
+      */
+      [[nodiscard]]
+      float getPosition() const noexcept;
+
+      /**\fn getDirection
+       * \brief
+       *    Get the rotation direction
+       * 
+       * \return
+       *    The direction (0 for clockwise, 1 for counter-clockwise)
+      */
+      [[nodiscard]]
+      std::uint8_t getDirection() const noexcept;
+
+      /**\fn getMaxSpeed
+       * \brief
+       *    Get the maximum speed limit
+       * 
+       * \return
+       *    The maximum speed in dps
+      */
+      [[nodiscard]]
+      float getMaxSpeed() const noexcept;
+  };
+
+  /**\class IncrementalPositionControlRequest
+   * \brief
+   *    Request for controlling the actuator in incremental position mode
+  */
+  class IncrementalPositionControlRequest: public SingleMotorRequest<CommandType::INCREMENTAL_POSITION_CLOSED_LOOP_CONTROL> {
+    public:
+      /**\fn IncrementalPositionControlRequest
+       * \brief
+       *    Class constructor
+       * 
+       * \param[in] position_increment
+       *    The position increment in degrees
+       * \param[in] max_speed
+       *    The maximum speed during movement in dps
+      */
+      IncrementalPositionControlRequest(float const position_increment, 
+                                      float const max_speed = 500.0f);
+      IncrementalPositionControlRequest() = delete;
+      IncrementalPositionControlRequest(IncrementalPositionControlRequest const&) = default;
+      IncrementalPositionControlRequest& operator = (IncrementalPositionControlRequest const&) = default;
+      IncrementalPositionControlRequest(IncrementalPositionControlRequest&&) = default;
+      IncrementalPositionControlRequest& operator = (IncrementalPositionControlRequest&&) = default;
+      using SingleMotorRequest::SingleMotorRequest;
+
+      /**\fn getPositionIncrement
+       * \brief
+       *    Get the position increment
+       * 
+       * \return
+       *    The position increment in degrees
+      */
+      [[nodiscard]]
+      float getPositionIncrement() const noexcept;
+
+      /**\fn getMaxSpeed
+       * \brief
+       *    Get the maximum speed limit
+       * 
+       * \return
+       *    The maximum speed in dps
+      */
+      [[nodiscard]]
+      float getMaxSpeed() const noexcept;
   };
 
   using ShutdownMotorRequest = SingleMotorRequest<CommandType::SHUTDOWN_MOTOR>;

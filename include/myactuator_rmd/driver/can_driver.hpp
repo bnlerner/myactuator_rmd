@@ -11,9 +11,11 @@
 #pragma once
 
 #include <string>
+#include <array>
 
 #include "myactuator_rmd/driver/can_address_offset.hpp"
 #include "myactuator_rmd/driver/can_node.hpp"
+#include "myactuator_rmd/protocol/message.hpp"
 
 
 namespace myactuator_rmd {
@@ -37,6 +39,10 @@ namespace myactuator_rmd {
       : CanNode{ifname} {
         return;
       }
+
+      // Override sendRecv to pass frames to the actuator interface
+      [[nodiscard]]
+      std::array<std::uint8_t,8> sendRecv(Message const& request, std::uint32_t const actuator_id, ActuatorInterface* interface = nullptr);
 
       CanDriver() = delete;
       CanDriver(CanDriver const&) = delete;
